@@ -1,18 +1,28 @@
 package main
 
 import (
+	"log"
 	"net/http"
 
 	"github.com/gorilla/mux"
-	"github.com/murali0706/customer/routes"
+	"github.com/murali0706/customer/config"
+	customerHttp "github.com/murali0706/customer/customer/http"
+	repository "github.com/murali0706/customer/repository/mysql"
+	"github.com/murali0706/customer/service"
 )
 
 func main() {
-	routers:= mux.NewRouter()
-	routers.HandleFunc("/customer/create", routes.CreateCustomer).Methods("POST")
-	routers.HandleFunc("/customer/{id}", routes.GetCustomer).Methods("GET")
-	routers.HandleFunc("/customer", routes.GetAllCustomers).Methods("GET")
-	routers.HandleFunc("/customer/{id}", routes.UpdateCustomer).Methods("PATCH")
-	routers.HandleFunc("/customer/delete/{id}", routes.DeleteCustomer).Methods("DELETE")
-	http.ListenAndServe(":8080", routers)
+	dbConn, err := config.GetDB()
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	r := mux.NewRouter()
+	customerRepo := repository.NewMysqlCustomerReposity(dbConn)
+
+	cu := service.NewCustomerUsecase(customerRepo)
+	customerHttp.NewCustomerHandler(r, cu)
+
+	log.Fatal(http.ListenAndServe(":8080", r))
 }
